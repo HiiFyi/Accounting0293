@@ -52,7 +52,7 @@ def handle_purchase(message):
     if item not in accounts:
         bot.send_message(message.chat.id, "Service not available.")
         return
-    
+
     user_service_selection[message.chat.id] = item  # store selected service
 
     markup = types.InlineKeyboardMarkup()
@@ -68,9 +68,9 @@ def handle_country_selection(call):
     if not service:
         bot.answer_callback_query(call.id, "Service not found. Please try again.")
         return
-    
+
     accounts = load_accounts()
-    price = accounts[service]['price']
+    price = accounts[service].get('country_prices', {}).get(country, accounts[service]['price'])
     bot.send_message(
         call.message.chat.id,
         f"You selected *{service}* for *{country}*.\nPay ₹{price} to this UPI ID: `yourupi@upi`\n\nAfter payment, send 'PAID {service}'",
@@ -103,12 +103,37 @@ def add_account(message):
         accounts = load_accounts()
         accounts[name] = {
             "price": "100",
-            "credentials": f"Email: {email}\nPass: {password}"
+            "credentials": f"Email: {email}\nPass: {password}",
+            "country_prices": {}  # Add this line for country-specific prices
         }
         save_accounts(accounts)
         bot.send_message(message.chat.id, f"Added: {name}")
     except:
         bot.send_message(message.chat.id, "Use format: /add Name | Email: xyz | Pass: abc")
+
+@bot.message_handler(commands=['setprice'])
+def set_price(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    try:
+        parts = message.text.replace('/setprice ', '').split('|')
+        name = parts[0].strip()
+        country_price_info = parts[1].strip()
+        country, new_price = country_price_info.split(':')
+        country = country.strip()
+        new_price = new_price.strip()
+
+        accounts = load_accounts()
+        if name in accounts:
+            if 'country_prices' not in accounts[name]:
+                accounts[name]['country_prices'] = {}
+            accounts[name]['country_prices'][country] = new_price
+            save_accounts(accounts)
+            bot.send_message(message.chat.id, f"Price for {name} in {country} updated to ₹{new_price}.")
+        else:
+            bot.send_message(message.chat.id, "Service not found.")
+    except:
+        bot.send_message(message.chat.id, "Use format: /setprice Service Name | Country: NewPrice")
 
 @bot.message_handler(commands=['list'])
 def list_accounts(message):
@@ -135,37 +160,6 @@ def delete_account(message):
         bot.send_message(message.chat.id, f"Deleted: {name}")
     else:
         bot.send_message(message.chat.id, "Account not found.")
-
-@bot.message_handler(commands=['remove'])
-def remove_account(message):
-    if message.from_user.id not in ADMIN_IDS:
-        return
-    name = message.text.replace('/remove ', '').strip()
-    accounts = load_accounts()
-    if name in accounts:
-        del accounts[name]
-        save_accounts(accounts)
-        bot.send_message(message.chat.id, f"Removed: {name}")
-    else:
-        bot.send_message(message.chat.id, "Service not found.")
-
-@bot.message_handler(commands=['setprice'])
-def set_price(message):
-    if message.from_user.id not in ADMIN_IDS:
-        return
-    try:
-        parts = message.text.replace('/setprice ', '').split('|')
-        name = parts[0].strip()
-        new_price = parts[1].strip()
-        accounts = load_accounts()
-        if name in accounts:
-            accounts[name]['price'] = new_price
-            save_accounts(accounts)
-            bot.send_message(message.chat.id, f"Price for {name} updated to ₹{new_price}.")
-        else:
-            bot.send_message(message.chat.id, "Service not found.")
-    except:
-        bot.send_message(message.chat.id, "Use format: /setprice Service Name | NewPrice")
 
 @server.route(f'/{API_TOKEN}', methods=['POST'])
 def webhook():
