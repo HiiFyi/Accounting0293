@@ -101,6 +101,18 @@ def delete_account(message):
 
 @bot.message_handler(commands=['setprice'])
 def set_price(message):
+@bot.message_handler(commands=['remove'])
+def remove_account(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    name = message.text.replace('/remove ', '').strip()
+    accounts = load_accounts()
+    if name in accounts:
+        del accounts[name]
+        save_accounts(accounts)
+        bot.send_message(message.chat.id, f"Removed: {name}")
+    else:
+        bot.send_message(message.chat.id, "Service not found.")
     if message.from_user.id not in ADMIN_IDS:
         return
     try:
