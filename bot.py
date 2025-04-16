@@ -2,6 +2,7 @@ import os
 import telebot
 from flask import Flask, request
 import json
+from telebot import types
 
 API_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(API_TOKEN)
@@ -9,6 +10,21 @@ server = Flask(__name__)
 
 ADMIN_IDS = [7348205141, 7686142055]
 DATA_FILE = "accounts.json"
+
+COUNTRIES = {
+    "India": "🇮🇳",
+    "USA": "🇺🇸",
+    "UK": "🇬🇧",
+    "Canada": "🇨🇦",
+    "Australia": "🇦🇺",
+    "Germany": "🇩🇪",
+    "France": "🇫🇷",
+    "Japan": "🇯🇵",
+    "Brazil": "🇧🇷",
+    "UAE": "🇦🇪"
+}
+
+user_service_selection = {}
 
 def load_accounts():
     if os.path.exists(DATA_FILE):
@@ -31,12 +47,33 @@ def send_welcome(message):
 
 @bot.message_handler(func=lambda message: message.text in load_accounts())
 def handle_purchase(message):
-    accounts = load_accounts()
     item = message.text
-    price = accounts[item]['price']
+    accounts = load_accounts()
+    if item not in accounts:
+        bot.send_message(message.chat.id, "Service not available.")
+        return
+    
+    user_service_selection[message.chat.id] = item  # store selected service
+
+    markup = types.InlineKeyboardMarkup()
+    for country, flag in COUNTRIES.items():
+        markup.add(types.InlineKeyboardButton(f"{flag} {country}", callback_data=f"country_{country}"))
+
+    bot.send_message(message.chat.id, "Select your country:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("country_"))
+def handle_country_selection(call):
+    country = call.data.replace("country_", "")
+    service = user_service_selection.get(call.message.chat.id)
+    if not service:
+        bot.answer_callback_query(call.id, "Service not found. Please try again.")
+        return
+    
+    accounts = load_accounts()
+    price = accounts[service]['price']
     bot.send_message(
-        message.chat.id,
-        f"To buy {item}, pay ₹{price} to this UPI ID: `yourupi@upi`\nSend 'PAID {item}' after payment.",
+        call.message.chat.id,
+        f"You selected *{service}* for *{country}*.\nPay ₹{price} to this UPI ID: `yourupi@upi`\n\nAfter payment, send 'PAID {service}'",
         parse_mode='Markdown'
     )
 
