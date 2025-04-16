@@ -7,7 +7,7 @@ API_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(API_TOKEN)
 server = Flask(__name__)
 
-ADMIN_ID = 7348205141
+ADMIN_ID = 7348205141 7686142055
 DATA_FILE = "accounts.json"
 
 def load_accounts():
