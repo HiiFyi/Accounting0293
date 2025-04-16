@@ -99,8 +99,6 @@ def delete_account(message):
     else:
         bot.send_message(message.chat.id, "Account not found.")
 
-@bot.message_handler(commands=['setprice'])
-def set_price(message):
 @bot.message_handler(commands=['remove'])
 def remove_account(message):
     if message.from_user.id not in ADMIN_IDS:
@@ -113,6 +111,9 @@ def remove_account(message):
         bot.send_message(message.chat.id, f"Removed: {name}")
     else:
         bot.send_message(message.chat.id, "Service not found.")
+
+@bot.message_handler(commands=['setprice'])
+def set_price(message):
     if message.from_user.id not in ADMIN_IDS:
         return
     try:
