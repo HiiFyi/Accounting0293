@@ -56,7 +56,7 @@ def confirm_payment(message):
 
 @bot.message_handler(commands=['add'])
 def add_account(message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     try:
         parts = message.text.replace('/add ', '').split('|')
@@ -75,7 +75,7 @@ def add_account(message):
 
 @bot.message_handler(commands=['list'])
 def list_accounts(message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     accounts = load_accounts()
     if not accounts:
@@ -83,12 +83,12 @@ def list_accounts(message):
         return
     text = "Accounts:\n"
     for item in accounts:
-        text += f"- {item}\n"
+        text += f"- {item} (₹{accounts[item]['price']})\n"
     bot.send_message(message.chat.id, text)
 
 @bot.message_handler(commands=['delete'])
 def delete_account(message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     name = message.text.replace('/delete ', '').strip()
     accounts = load_accounts()
@@ -98,6 +98,24 @@ def delete_account(message):
         bot.send_message(message.chat.id, f"Deleted: {name}")
     else:
         bot.send_message(message.chat.id, "Account not found.")
+
+@bot.message_handler(commands=['setprice'])
+def set_price(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    try:
+        parts = message.text.replace('/setprice ', '').split('|')
+        name = parts[0].strip()
+        new_price = parts[1].strip()
+        accounts = load_accounts()
+        if name in accounts:
+            accounts[name]['price'] = new_price
+            save_accounts(accounts)
+            bot.send_message(message.chat.id, f"Price for {name} updated to ₹{new_price}.")
+        else:
+            bot.send_message(message.chat.id, "Service not found.")
+    except:
+        bot.send_message(message.chat.id, "Use format: /setprice Service Name | NewPrice")
 
 @server.route(f'/{API_TOKEN}', methods=['POST'])
 def webhook():
