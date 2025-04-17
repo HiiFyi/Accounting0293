@@ -219,6 +219,10 @@ def handle_country_selection(call):
                      f"You selected *{service}* for *{country}*.\nPay ₹{price} to: `yourupi@upi`\n\nSend 'PAID {service}' after payment.",
                      parse_mode='Markdown')
 
+@bot.callback_query_handler(func=lambda call: call.data == "back_to_main")
+def handle_back_to_main(call):
+    send_welcome(call.message)
+
 @bot.message_handler(func=lambda message: message.text.lower().startswith('paid'))
 def confirm_payment(message):
     try:
