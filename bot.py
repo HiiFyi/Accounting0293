@@ -160,6 +160,24 @@ def handle_country_selection(call):
         f"You selected *{service}* for *{country}*.\nPay ₹{price} to this UPI ID: `yourupi@upi`\n\nAfter payment, send 'PAID {service}'",
         parse_mode='Markdown'
     )
+@bot.callback_query_handler(func=lambda call: call.data == "referrals")
+def handle_referrals(call):
+    users = load_users()
+    user_id = str(call.from_user.id)
+    referrals = users.get(user_id, {}).get("referrals", 0)
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, f"You have {referrals} referrals.\nYou earned ${referrals * 0.01:.2f}.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "recharge_balance")
+def handle_recharge(call):
+    bot.answer_callback_query(call.id)
+    msg = (
+        "Choose your payment method:\n\n"
+        "1. Razorpay: https://razorpay.com\n"
+        "2. Cryptomus: https://cryptomus.com\n\n"
+        "After successful payment, send message:\n`/recharged 5` (for $5)"
+    )
+    bot.send_message(call.message.chat.id, msg, parse_mode="Markdown")
 @bot.callback_query_handler(func=lambda call: call.data == "ready_accounts")
 def handle_ready_accounts(call):
     markup = types.InlineKeyboardMarkup()
