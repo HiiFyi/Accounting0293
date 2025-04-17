@@ -98,6 +98,32 @@ def handle_country_selection(call):
         f"You selected *{service}* for *{country}*.\nPay ₹{price} to this UPI ID: `yourupi@upi`\n\nAfter payment, send 'PAID {service}'",
         parse_mode='Markdown'
     )
+@bot.callback_query_handler(func=lambda call: call.data == "ready_accounts")
+def handle_ready_accounts(call):
+    markup = types.InlineKeyboardMarkup()
+    for country, flag in COUNTRIES.items():
+        markup.add(types.InlineKeyboardButton(f"{flag} {country}", callback_data=f"country_{country}"))
+    bot.edit_message_text("Choose a country:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "delivery_accounts")
+def handle_delivery_accounts(call):
+    bot.answer_callback_query(call.id, "You can sell your account to @robotusername", show_alert=True)
+
+@bot.callback_query_handler(func=lambda call: call.data == "recharge_balance")
+def handle_recharge_balance(call):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Razorpay", url="https://razorpay.com"))
+    markup.add(types.InlineKeyboardButton("Cryptomus", url="https://cryptomus.com"))
+    bot.edit_message_text("Select recharge method:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "api_key")
+def handle_api_key(call):
+    bot.answer_callback_query(call.id, "Contact support for API Key.", show_alert=True)
+
+@bot.callback_query_handler(func=lambda call: call.data == "referrals")
+def handle_referrals(call):
+    referrals = 10  # Example: dynamic value laa sakte ho
+    bot.send_message(call.message.chat.id, f"Tumne {referrals} logon ko refer kiya.\nReward: ${referrals * 0.01:.2f}")
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith('paid'))
 def confirm_payment(message):
