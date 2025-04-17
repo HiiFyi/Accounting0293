@@ -11,6 +11,7 @@ server = Flask(__name__)
 
 ADMIN_IDS = [7348205141, 7686142055]
 DATA_FILE = "accounts.json"
+USER_FILE = "users.json"
 
 COUNTRIES = {
     "India": "🇮🇳",
@@ -28,24 +29,24 @@ COUNTRIES = {
 user_service_selection = {}
 
 def load_accounts():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
+    if os.path.exists(USER_FILE):
+        with open(USER_FILE, "r") as f:
             return json.load(f)
     return {}
 
 def save_accounts(data):
-    with open(DATA_FILE, "w") as f:
+    with open(USER_FILE, "w") as f:
         json.dump(data, f)
 
 @bot.message_handler(commands=['start'])
 def load_users():
-    if os.path.exists(DATA_FILE):
+    if os.path.exists(USER_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     return {}
 
 def save_users(data):
-    with open(DATA_FILE, "w") as f:
+    with open(USER_FILE, "w") as f:
         json.dump(data, f)
 
 def get_user_balance(user_id):
