@@ -75,12 +75,29 @@ def set_user_balance(user_id, balance):
         f"Welcome {message.from_user.first_name}!\n\nYour Balance: ${balance:.2f}",
         reply_markup=markup
     )
-    accounts = load_accounts()
-    text = "Welcome to the Account Store!\nAvailable services:\n"
-    for idx, item in enumerate(accounts.keys(), start=1):
-        text += f"{idx}. {item} - ₹{accounts[item]['price']}\n"
-    text += "\nSend the name of the service you want to buy."
-    bot.send_message(message.chat.id, text)
+def add_referral(user_id, referred_by):
+    users = load_users()
+    user_id = str(user_id)
+    referred_by = str(referred_by)
+
+    if user_id not in users:
+        users[user_id] = {"balance": 0.0, "referrals": 0}
+
+    if "ref_by" not in users[user_id] and referred_by != user_id:
+        users[user_id]["ref_by"] = referred_by
+        users[referred_by]["referrals"] = users.get(referred_by, {}).get("referrals", 0) + 1
+        users[referred_by]["balance"] = users.get(referred_by, {}).get("balance", 0.0) + 0.01  # $0.01 reward
+        save_users(users)
+
+def recharge_balance(user_id, amount):
+    current = get_user_balance(user_id)
+    set_user_balance(user_id, current + amount)
+  #  accounts = load_accounts()
+   # text = "Welcome to the Account Store!\nAvailable services:\n"
+ #   for idx, item in enumerate(accounts.keys(), start=1):
+#        text += f"{idx}. {item} - ₹{accounts[item]['price']}\n"
+ #   text += "\nSend the name of the service you want to buy."
+#    bot.send_message(message.chat.id, text)
 
 @bot.message_handler(func=lambda message: message.text in load_accounts())
 def handle_purchase(message):
