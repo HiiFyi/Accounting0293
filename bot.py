@@ -3,6 +3,7 @@ import telebot
 from flask import Flask, request
 import json
 from telebot import types
+from otp_forwarder import set_latest_buyer, otp_client
 
 API_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(API_TOKEN)
@@ -71,6 +72,10 @@ def handle_country_selection(call):
 
     accounts = load_accounts()
     price = accounts[service].get('country_prices', {}).get(country, accounts[service]['price'])
+
+    # Set buyer for OTP
+    set_latest_buyer(service, call.message.chat.id)
+
     bot.send_message(
         call.message.chat.id,
         f"You selected *{service}* for *{country}*.\nPay ₹{price} to this UPI ID: `yourupi@upi`\n\nAfter payment, send 'PAID {service}'",
@@ -104,7 +109,7 @@ def add_account(message):
         accounts[name] = {
             "price": "100",
             "credentials": f"Email: {email}\nPass: {password}",
-            "country_prices": {}  # Add this line for country-specific prices
+            "country_prices": {}
         }
         save_accounts(accounts)
         bot.send_message(message.chat.id, f"Added: {name}")
@@ -171,6 +176,10 @@ def index():
     return "Bot is running!", 200
 
 if __name__ == '__main__':
+    # Start Pyrogram OTP forwarder in a separate thread
+    import threading
+    threading.Thread(target=otp_client.run).start()
+
     bot.remove_webhook()
     bot.set_webhook(url=f"{os.getenv('WEBHOOK_URL')}/{API_TOKEN}")
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
