@@ -12,28 +12,6 @@ server = Flask(__name__)
 ADMIN_IDS = [7348205141, 7686142055]
 DATA_FILE = "accounts.json"
 
-def load_users():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_users(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-def get_user_balance(user_id):
-    users = load_users()
-    return users.get(str(user_id), {}).get("balance", 0.00)
-
-def set_user_balance(user_id, balance):
-    users = load_users()
-    user_id_str = str(user_id)
-    if user_id_str not in users:
-        users[user_id_str] = {}
-    users[user_id_str]["balance"] = balance
-    save_users(users)
-
 COUNTRIES = {
     "India": "🇮🇳",
     "USA": "🇺🇸",
@@ -60,9 +38,27 @@ def save_accounts(data):
         json.dump(data, f)
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    user_id = message.chat.id
-    balance = 5.00  # Yeh tum dynamic bhi bana sakte ho agar database ya file se aa raha ho
+def load_users():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_users(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
+
+def get_user_balance(user_id):
+    users = load_users()
+    return users.get(str(user_id), {}).get("balance", 0.00)
+
+def set_user_balance(user_id, balance):
+    users = load_users()
+    user_id_str = str(user_id)
+    if user_id_str not in users:
+        users[user_id_str] = {}
+    users[user_id_str]["balance"] = balance
+    save_users(users)
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("📱 Ready Made Telegram Accounts", callback_data="ready_accounts"))
