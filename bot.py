@@ -202,6 +202,8 @@ def handle_purchase(message):
     markup = types.InlineKeyboardMarkup()
     for country, flag in COUNTRIES.items():
         markup.add(types.InlineKeyboardButton(f"{flag} {country}", callback_data=f"country_{country}"))
+    # Add Back Button
+    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="back_to_main"))
     bot.send_message(message.chat.id, "Select your country:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("country_"))
