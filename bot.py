@@ -170,6 +170,28 @@ def delete_account(message):
 def webhook():
     bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "OK", 200
+@bot.message_handler(commands=['uploadsession'])
+def ask_for_session(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    bot.send_message(message.chat.id, "Please send your `.session` file now.")
+
+@bot.message_handler(content_types=['document'])
+def handle_document(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+
+    if not message.document.file_name.endswith(".session"):
+        bot.send_message(message.chat.id, "Please send a valid `.session` file.")
+        return
+
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    with open("main_account.session", "wb") as f:
+        f.write(downloaded_file)
+
+    bot.send_message(message.chat.id, "Session file uploaded successfully as `main_account.session`. Restart the bot if required.")
 
 @server.route('/')
 def index():
