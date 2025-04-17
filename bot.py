@@ -39,6 +39,32 @@ def save_accounts(data):
         json.dump(data, f)
 
 @bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user_id = message.chat.id
+    args = message.text.split()
+    if len(args) > 1:
+        ref_by = args[1]
+        add_referral(user_id, ref_by)
+
+    if str(user_id) not in load_users():
+        set_user_balance(user_id, 0.00)
+
+    balance = get_user_balance(user_id)
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("📱 Ready Made Telegram Accounts", callback_data="ready_accounts"))
+    markup.add(types.InlineKeyboardButton("🚚 Delivery Ready Accounts", callback_data="delivery_accounts"))
+    markup.add(types.InlineKeyboardButton("🛠️ Support Team", url="https://t.me/yourusername"))
+    markup.add(types.InlineKeyboardButton("💰 Recharge Your Balance", callback_data="recharge_balance"))
+    markup.add(types.InlineKeyboardButton("✅ Successful Purchase", url="https://t.me/yourchannel"))
+    markup.add(types.InlineKeyboardButton("🔑 API Key", callback_data="api_key"))
+    markup.add(types.InlineKeyboardButton("👥 Your Referrals", callback_data="referrals"))
+
+    bot.send_message(
+        user_id,
+        f"Welcome {message.from_user.first_name}!\n\nYour Balance: ${balance:.2f}",
+        reply_markup=markup
+    )
 def load_users():
     if os.path.exists(USER_FILE):
         with open(DATA_FILE, "r") as f:
