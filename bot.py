@@ -13,7 +13,7 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 bot = telebot.TeleBot(API_TOKEN)
 server = Flask(__name__)
 
-# Configurations
+# Config
 ADMIN_IDS = [7348205141, 7686142055]
 ACCOUNT_FILE = "accounts.json"
 USER_FILE = "users.json"
@@ -29,9 +29,12 @@ user_service_selection = {}
 # -------- JSON Helpers --------
 
 def load_json_file(filename, default={}):
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
-            return json.load(f)
+    try:
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                return json.load(f)
+    except:
+        pass
     return default.copy()
 
 def save_json_file(filename, data):
@@ -50,7 +53,7 @@ def load_accounts():
 def save_accounts(data):
     save_json_file(ACCOUNT_FILE, data)
 
-# -------- User Handlers --------
+# -------- User Functions --------
 
 def get_user_balance(user_id):
     return load_users().get(str(user_id), {}).get("balance", 0.00)
@@ -92,7 +95,6 @@ def send_welcome(message):
         set_user_balance(user_id, 0.00)
 
     balance = get_user_balance(user_id)
-
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("📱 Ready Made Telegram Accounts", callback_data="ready_accounts"),
@@ -103,7 +105,6 @@ def send_welcome(message):
         types.InlineKeyboardButton("🛠️ Support Team", url="https://t.me/yourusername"),
         types.InlineKeyboardButton("✅ Successful Purchase", url="https://t.me/yourchannel"),
     )
-
     bot.send_message(user_id, f"Welcome {message.from_user.first_name}!\n\nYour Balance: ${balance:.2f}", reply_markup=markup)
 
 @bot.message_handler(commands=['uploadsession'])
@@ -115,22 +116,19 @@ def ask_for_session(message):
 def handle_document(message):
     if message.from_user.id not in ADMIN_IDS:
         return
-
     if not message.document.file_name.lower().endswith(".session"):
         return bot.send_message(message.chat.id, "Send a valid `.session` file.")
 
     try:
         file_info = bot.get_file(message.document.file_id)
         downloaded = bot.download_file(file_info.file_path)
-
         with open("main_account.session", "wb") as f:
             f.write(downloaded)
-
         bot.send_message(message.chat.id, "Session file saved as `main_account.session`.")
     except Exception as e:
         bot.send_message(message.chat.id, f"Error: {e}")
 
-# -------- Admin Commands --------
+# -------- Admin Account Commands --------
 
 @bot.message_handler(commands=['add'])
 def add_account(message):
@@ -140,8 +138,8 @@ def add_account(message):
     try:
         parts = message.text.replace('/add ', '').split('|')
         name = parts[0].strip()
-        email = parts[1].split(':')[1].strip()
-        password = parts[2].split(':')[1].strip()
+        email = parts[1].split(':', 1)[1].strip()
+        password = parts[2].split(':', 1)[1].strip()
 
         accounts = load_accounts()
         accounts[name] = {
@@ -158,19 +156,16 @@ def add_account(message):
 def set_price(message):
     if message.from_user.id not in ADMIN_IDS:
         return
-
     try:
-        name, country_info = message.text.replace('/setprice ', '').split('|')
-        country, price = country_info.split(':')
+        name_part, country_info = message.text.replace('/setprice ', '').split('|')
+        name = name_part.strip()
+        country, price = country_info.strip().split(':')
         accounts = load_accounts()
-        name = name.strip()
-        country = country.strip()
-        price = price.strip()
 
         if name in accounts:
-            accounts[name].setdefault("country_prices", {})[country] = price
+            accounts[name].setdefault("country_prices", {})[country.strip()] = price.strip()
             save_accounts(accounts)
-            bot.send_message(message.chat.id, f"Set price of {name} in {country} to ₹{price}.")
+            bot.send_message(message.chat.id, f"Set price of {name} in {country.strip()} to ₹{price.strip()}.")
         else:
             bot.send_message(message.chat.id, "Service not found.")
     except:
@@ -180,11 +175,9 @@ def set_price(message):
 def list_accounts(message):
     if message.from_user.id not in ADMIN_IDS:
         return
-
     accounts = load_accounts()
     if not accounts:
         return bot.send_message(message.chat.id, "No accounts available.")
-
     msg = "Accounts:\n" + "\n".join([f"- {name} (₹{data['price']})" for name, data in accounts.items()])
     bot.send_message(message.chat.id, msg)
 
@@ -192,7 +185,6 @@ def list_accounts(message):
 def delete_account(message):
     if message.from_user.id not in ADMIN_IDS:
         return
-
     name = message.text.replace('/delete ', '').strip()
     accounts = load_accounts()
     if name in accounts:
@@ -220,7 +212,10 @@ def handle_country_selection(call):
     if not service:
         return bot.answer_callback_query(call.id, "Try again.")
     accounts = load_accounts()
-    price = accounts[service].get('country_prices', {}).get(country, accounts[service]['price'])
+    account = accounts.get(service)
+    if not account:
+        return bot.answer_callback_query(call.id, "Service not found.")
+    price = account.get('country_prices', {}).get(country, account['price'])
     set_latest_buyer(service, call.message.chat.id)
     bot.send_message(
         call.message.chat.id,
@@ -241,7 +236,7 @@ def confirm_payment(message):
     except:
         bot.send_message(message.chat.id, "Use: PAID <Service Name>")
 
-# -------- Callback Buttons --------
+# -------- Callback Button Handlers --------
 
 @bot.callback_query_handler(func=lambda call: call.data == "referrals")
 def handle_referrals(call):
@@ -273,7 +268,7 @@ def handle_delivery_accounts(call):
 def handle_api_key(call):
     bot.answer_callback_query(call.id, "Contact support to get your API Key.", show_alert=True)
 
-# -------- Webhook + Server --------
+# -------- Webhook & Server --------
 
 @server.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
